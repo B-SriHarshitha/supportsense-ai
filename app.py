@@ -4,6 +4,7 @@ import json
 from dotenv import load_dotenv
 from openai import OpenAI
 
+# Load environment variables
 load_dotenv()
 
 client = OpenAI(
@@ -38,7 +39,7 @@ customer_id = st.text_input("Enter Customer ID")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Show old chat messages
+# Display previous chat
 for role, message in st.session_state.messages:
     with st.chat_message(role):
         st.write(message)
@@ -51,11 +52,11 @@ if user_input and customer_id:
     with st.chat_message("user"):
         st.write(user_input)
 
-    # Get previous memory
+    # Load previous memory for this customer
     old_memory = memory.get(customer_id, [])
     memory_context = "\n".join(old_memory)
 
-    # Smart routing (cascadeflow-like)
+    # Smart model routing
     if len(user_input.split()) < 8:
         selected_model = "llama-3.1-8b-instant"
         routing_reason = "Fast model selected (simple query)"
@@ -69,15 +70,27 @@ if user_input and customer_id:
             {
                 "role": "system",
                 "content": f"""
-You are an AI customer support agent.
+You are SupportSense AI, a helpful customer support assistant.
 
-Help customers with:
-- refunds
-- orders
-- shipping
-- complaints
+You help customers with:
+- Order tracking
+- Shipping
+- Refunds
+- Returns
+- Complaints
+- General support
 
-Use previous customer history to personalize support.
+Use the customer's previous conversation only if it exists.
+
+IMPORTANT RULES:
+- Never invent order numbers.
+- Never invent tracking IDs.
+- Never invent addresses.
+- Never invent shipping status.
+- Never invent customer details.
+- Never claim an order exists unless the user has provided that information.
+- If information is missing, politely ask the customer for it.
+- If the customer asks what they asked earlier, answer using only the previous conversation stored below.
 
 Customer History:
 {memory_context}
@@ -92,7 +105,7 @@ Customer History:
 
     reply = completion.choices[0].message.content
 
-    # Save memory
+    # Save conversation memory
     if customer_id not in memory:
         memory[customer_id] = []
 
